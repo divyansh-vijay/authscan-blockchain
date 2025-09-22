@@ -1,0 +1,16 @@
+{
+  "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "abi": [
+    "constructor()",
+    "event CertificateIssued(string indexed,address indexed,uint256)",
+    "event CertificateRevoked(string indexed,address indexed)",
+    "function authorizeIssuer(address)",
+    "function authorizedIssuers(address) view returns (bool)",
+    "function certificateExists(string) view returns (bool)",
+    "function certificates(string) view returns (string,address,uint256,bool,string)",
+    "function issueCertificate(string,string)",
+    "function owner() view returns (address)",
+    "function revokeCertificate(string)",
+    "function verifyCertificate(string) view returns (bool,address,uint256,bool,string)"
+  ]
+}

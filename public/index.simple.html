@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verifier - Simple</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 20px; }
+        .row { margin-bottom: 12px; }
+        label { display:block; margin-bottom: 4px; font-weight: 600; }
+        input, select { width: 100%; padding: 8px; }
+        button { padding: 10px 14px; margin-right: 8px; }
+        .status { padding: 8px 12px; border-radius: 6px; display:inline-block; }
+        .ok { background:#dcfce7; color:#166534; }
+        .err { background:#fee2e2; color:#991b1b; }
+        .card { border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:16px; }
+        pre { background:#f8fafc; padding:10px; overflow:auto; }
+    </style>
+    <script>
+        async function getJSON(url, options) {
+            const res = await fetch(url, options);
+            const text = await res.text();
+            try { return { status: res.status, json: JSON.parse(text) }; }
+            catch { return { status: res.status, json: { error: text } }; }
+        }
+
+        async function refreshStatus() {
+            const el = document.getElementById('status');
+            el.textContent = 'Checking...'; el.className = 'status';
+            const { status, json } = await getJSON('/api/contract-info');
+            document.getElementById('status-raw').textContent = JSON.stringify(json, null, 2);
+            if (status === 200 && json && json.success) {
+                el.textContent = `Connected - ${json.signerAddress} (net ${json.networkId})`; el.className = 'status ok';
+                document.getElementById('contract').textContent = json.contractAddress;
+            } else {
+                el.textContent = `Not connected`; el.className = 'status err';
+            }
+        }
+
+        async function issue(evt) {
+            evt.preventDefault();
+            const data = Object.fromEntries(new FormData(evt.target));
+            // Normalize grade default to match server-side
+            if (!data.grade) data.grade = 'N/A';
+            const { status, json } = await getJSON('/api/issue-certificate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+            });
+            document.getElementById('issue-raw').textContent = JSON.stringify(json, null, 2);
+            alert(status === 200 && json.success ? 'Issued!' : `Issue failed: ${json.error || status}`);
+        }
+
+        async function verify(evt) {
+            evt.preventDefault();
+            const data = Object.fromEntries(new FormData(evt.target));
+            if (!data.grade) data.grade = 'N/A';
+            const { status, json } = await getJSON('/api/verify-certificate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+            });
+            document.getElementById('verify-raw').textContent = JSON.stringify(json, null, 2);
+            alert(status === 200 && json.success ? (json.valid ? 'Valid' : 'Not found') : `Verify failed: ${json.error || status}`);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            refreshStatus();
+            document.getElementById('issue-form').addEventListener('submit', issue);
+            document.getElementById('verify-form').addEventListener('submit', verify);
+            document.getElementById('btn-refresh').addEventListener('click', refreshStatus);
+        });
+    </script>
+    </head>
+<body>
+    <h1>Certificate Verifier (Simple)</h1>
+
+    <div class="card">
+        <div><strong>Status:</strong> <span id="status" class="status">Checking...</span></div>
+        <div>Contract: <span id="contract">-</span></div>
+        <div class="row"><button id="btn-refresh">Refresh</button></div>
+        <pre id="status-raw"></pre>
+    </div>
+
+    <div class="card">
+        <h3>Issue Certificate</h3>
+        <form id="issue-form">
+            <div class="row">
+                <label for="studentName">Student Name *</label>
+                <input id="studentName" name="studentName" required>
+            </div>
+            <div class="row">
+                <label for="courseName">Course Name *</label>
+                <input id="courseName" name="courseName" required>
+            </div>
+            <div class="row">
+                <label for="issueDate">Issue Date *</label>
+                <input id="issueDate" name="issueDate" type="date" required>
+            </div>
+            <div class="row">
+                <label for="grade">Grade</label>
+                <select id="grade" name="grade"><option value="">(optional)</option><option>A+</option><option>A</option><option>B</option></select>
+            </div>
+            <div class="row">
+                <label for="institution">Institution</label>
+                <input id="institution" name="institution" placeholder="(optional)">
+            </div>
+            <button type="submit">Issue</button>
+        </form>
+        <pre id="issue-raw"></pre>
+    </div>
+
+    <div class="card">
+        <h3>Verify Certificate</h3>
+        <form id="verify-form">
+            <div class="row">
+                <label for="verify-studentName">Student Name</label>
+                <input id="verify-studentName" name="studentName">
+            </div>
+            <div class="row">
+                <label for="verify-courseName">Course Name</label>
+                <input id="verify-courseName" name="courseName">
+            </div>
+            <div class="row">
+                <label for="verify-issueDate">Issue Date</label>
+                <input id="verify-issueDate" name="issueDate" type="date">
+            </div>
+            <div class="row">
+                <label for="verify-grade">Grade</label>
+                <select id="verify-grade" name="grade"><option value="">(optional)</option><option>A+</option><option>A</option><option>B</option></select>
+            </div>
+            <button type="submit">Verify</button>
+        </form>
+        <pre id="verify-raw"></pre>
+    </div>
+
+</body>
+</html>
+
+
